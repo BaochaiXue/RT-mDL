@@ -1,0 +1,19 @@
+{
+    "tasks": [
+        {
+            "name": "TrafficLightDetection",
+            "model": "tiny-YOLO",
+            "priority": 1,
+            "deadline": 50,
+            "period": 50
+        },
+        {
+            "name": "SignRecognition",
+            "model": "VGG11",
+            "priority": 2,
+            "deadline": 50,
+            "period": 50
+        }
+    ],
+    "storage_bound": 100
+}
