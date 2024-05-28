@@ -1,0 +1,19 @@
+experimentName: example_experiment
+trialConcurrency: 1
+maxTrialNumber: 20
+maxExperimentDuration: 1h
+searchSpaceFile: search_space.json
+tuner:
+  name: TPE
+  classArgs:
+    optimize_mode: maximize
+assessor:
+  name: Medianstop
+  classArgs:
+    optimize_mode: maximize
+trainingService:
+  platform: local
+  useActiveGpu: true
+trialCommand: python train_with_nni.py
+trialCodeDirectory: .
+trialGpuNumber: 3

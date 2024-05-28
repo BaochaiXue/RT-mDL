@@ -1,0 +1,30 @@
+{
+    "learning_rate": {
+        "_type": "uniform",
+        "_value": [
+            0.001,
+            0.1
+        ]
+    },
+    "pruning_amount": {
+        "_type": "uniform",
+        "_value": [
+            0.1,
+            0.9
+        ]
+    },
+    "width_scaling_factor": {
+        "_type": "uniform",
+        "_value": [
+            0.5,
+            1.0
+        ]
+    },
+    "depth_scaling_factor": {
+        "_type": "uniform",
+        "_value": [
+            0.5,
+            1.0
+        ]
+    }
+}
