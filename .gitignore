@@ -1,1 +1,8 @@
 data/*
+models/AlexNet/__pycache__/model_alexnet.cpython-311.pyc
+models/ResNet/__pycache__/model_resnet.cpython-311.pyc
+models/VGG/__pycache__/model_vgg.cpython-311.pyc
+models/TinyYOLO/__pycache__/model_tiny_yolo.cpython-311.pyc
+__pycache__/data_preparation.cpython-311.pyc
+__pycache__/training_evaluation.cpython-311.pyc
+model_variants_results.csv

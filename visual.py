@@ -7,7 +7,14 @@ df = pd.read_csv("model_variants_results.csv")
 
 # Plot accuracy vs. pruning amount
 plt.figure(figsize=(12, 6))
-sns.scatterplot(data=df, x="pruning_amount", y="accuracy", hue="width_scaling_factor", style="depth_scaling_factor", palette="viridis")
+sns.scatterplot(
+    data=df,
+    x="pruning_amount",
+    y="accuracy",
+    hue="width_scaling_factor",
+    style="depth_scaling_factor",
+    palette="viridis",
+)
 plt.title("Accuracy vs. Pruning Amount")
 plt.xlabel("Pruning Amount")
 plt.ylabel("Accuracy")
@@ -16,7 +23,14 @@ plt.show()
 
 # Plot test time vs. pruning amount
 plt.figure(figsize=(12, 6))
-sns.scatterplot(data=df, x="pruning_amount", y="test_time", hue="width_scaling_factor", style="depth_scaling_factor", palette="viridis")
+sns.scatterplot(
+    data=df,
+    x="pruning_amount",
+    y="test_time",
+    hue="width_scaling_factor",
+    style="depth_scaling_factor",
+    palette="viridis",
+)
 plt.title("Test Time vs. Pruning Amount")
 plt.xlabel("Pruning Amount")
 plt.ylabel("Test Time (seconds)")

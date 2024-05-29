@@ -1,11 +1,53 @@
 import torch.nn as nn
 
 cfg = {
-    'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
-    'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
+    "VGG11": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
+    "VGG13": [64, 64, "M", 128, 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
+    "VGG16": [
+        64,
+        64,
+        "M",
+        128,
+        128,
+        "M",
+        256,
+        256,
+        256,
+        "M",
+        512,
+        512,
+        512,
+        "M",
+        512,
+        512,
+        512,
+        "M",
+    ],
+    "VGG19": [
+        64,
+        64,
+        "M",
+        128,
+        128,
+        "M",
+        256,
+        256,
+        256,
+        256,
+        "M",
+        512,
+        512,
+        512,
+        512,
+        "M",
+        512,
+        512,
+        512,
+        512,
+        "M",
+    ],
 }
+
 
 class VGG(nn.Module):
     def __init__(self, vgg_name, num_classes=10):
@@ -31,24 +73,30 @@ class VGG(nn.Module):
         layers = []
         in_channels = 3
         for x in cfg:
-            if x == 'M':
+            if x == "M":
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             else:
-                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
-                           nn.BatchNorm2d(x),
-                           nn.ReLU(inplace=True)]
+                layers += [
+                    nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
+                    nn.BatchNorm2d(x),
+                    nn.ReLU(inplace=True),
+                ]
                 in_channels = x
         layers += [nn.AdaptiveAvgPool2d((1, 1))]
         return nn.Sequential(*layers)
 
+
 def VGG11(num_classes=10):
-    return VGG('VGG11', num_classes)
+    return VGG("VGG11", num_classes)
+
 
 def VGG13(num_classes=10):
-    return VGG('VGG13', num_classes)
+    return VGG("VGG13", num_classes)
+
 
 def VGG16(num_classes=10):
-    return VGG('VGG16', num_classes)
+    return VGG("VGG16", num_classes)
+
 
 def VGG19(num_classes=10):
-    return VGG('VGG19', num_classes)
+    return VGG("VGG19", num_classes)
