@@ -13,12 +13,18 @@ import itertools
 import pandas as pd
 import os
 
+
 def prune_model(model, amount):
-    parameters_to_prune = []
+    parameters_to_prune = (
+        []
+    )  # List of tuples of the form (module, name) where module is the module to prune and name is the parameter to prune
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-            parameters_to_prune.append((module, 'weight'))
-    prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=amount)
+            parameters_to_prune.append((module, "weight"))
+    prune.global_unstructured(
+        parameters_to_prune, pruning_method=prune.L1Unstructured, amount=amount
+    )  # Prune the model
+
 
 def weight_sharing(model):
     shared_weights = {}
@@ -30,12 +36,14 @@ def weight_sharing(model):
                 shared_weights[module.weight.shape] = module.weight
     return model
 
+
 def width_scaling(model, factor):
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d):
             out_channels = int(module.out_channels * factor)
             module.out_channels = out_channels
     return model
+
 
 def depth_scaling(model, factor):
     new_layers = []
@@ -48,6 +56,7 @@ def depth_scaling(model, factor):
     model.features = nn.Sequential(*new_layers)
     return model
 
+
 def main():
     # Define fixed parameter values
     default_learning_rate = 0.01  # Set a relatively large initial learning rate
@@ -59,17 +68,28 @@ def main():
     dataset = 'cifar10'  # Change this to 'gtsrb' as needed
     model_type = 'VGG11'  # Change this to the desired model type
 
-    if dataset == 'cifar10':
+
+    if dataset == "cifar10":
         train_loader, test_loader = get_cifar10_loaders()
-    elif dataset == 'gtsrb':
+    elif dataset == "gtsrb":
         train_loader, test_loader = get_gtsrb_loaders()
     else:
         raise ValueError("Invalid dataset")
 
-    results_path = 'model_variants_results.csv'
+    results_path = "model_variants_results.csv"
     if not os.path.exists(results_path):
-        df = pd.DataFrame(columns=["learning_rate", "pruning_amount", "width_scaling_factor", 
-                                   "depth_scaling_factor", "accuracy", "training_time", "test_time", "epoch"])
+        df = pd.DataFrame(
+            columns=[
+                "learning_rate",
+                "pruning_amount",
+                "width_scaling_factor",
+                "depth_scaling_factor",
+                "accuracy",
+                "training_time",
+                "test_time",
+                "epoch",
+            ]
+        )
         df.to_csv(results_path, index=False)
 
     # Iterate over combinations of parameters
@@ -78,22 +98,24 @@ def main():
     for pruning_amount, width_scaling_factor, depth_scaling_factor in param_combinations:
 
         # Initialize model
-        if model_type == 'AlexNet':
+        if model_type == "AlexNet":
             model = AlexNet(num_classes=10)
-        elif model_type == 'ResNet18':
+        elif model_type == "ResNet18":
             model = get_resnet18(num_classes=10)
-        elif model_type == 'ResNet34':
+        elif model_type == "ResNet34":
             model = get_resnet34(num_classes=10)
-        elif model_type == 'VGG11':
+        elif model_type == "VGG11":
             model = get_vgg11(num_classes=10)
-        elif model_type == 'VGG13':
+        elif model_type == "VGG13":
             model = get_vgg13(num_classes=10)
-        elif model_type == 'VGG16':
+        elif model_type == "VGG16":
             model = get_vgg16(num_classes=10)
-        elif model_type == 'VGG19':
+        elif model_type == "VGG19":
             model = get_vgg19(num_classes=10)
-        elif model_type == 'TinyYOLO':
-            model = TinyYOLO(num_classes=20)  # Adjust the number of classes for TinyYOLO
+        elif model_type == "TinyYOLO":
+            model = TinyYOLO(
+                num_classes=20
+            )  # Adjust the number of classes for TinyYOLO
         else:
             raise ValueError("Invalid model type")
 
@@ -126,15 +148,18 @@ def main():
             test_start_time = time.time()
             test_loss, accuracy = test(model, test_loader, criterion, device)
             test_time = time.time() - test_start_time
+
             print(f"Epoch {epoch + 1}: Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%, Test Time: {test_time:.2f} seconds")
             
             # Step the scheduler
             scheduler.step(test_loss)
 
+
             # Capture time after testing
             current_time = time.time() - start_time
 
             # Append current results to CSV
+
             df = pd.DataFrame([{
                 "learning_rate": optimizer.param_groups[0]['lr'],  # Record the current learning rate
                 "pruning_amount": pruning_amount,
@@ -147,7 +172,9 @@ def main():
             }])
             df.to_csv(results_path, mode='a', header=False, index=False)
 
+
             print(f"Epoch {epoch + 1} results saved.")
+
 
 if __name__ == "__main__":
     main()
