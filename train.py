@@ -13,29 +13,25 @@ import itertools
 import pandas as pd
 import os
 
-
 def prune_model(model, amount):
-    parameters_to_prune = (
-        []
-    )  # List of tuples of the form (module, name) where module is the module to prune and name is the parameter to prune
+    parameters_to_prune = []
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-            parameters_to_prune.append((module, "weight"))
-    prune.global_unstructured(
-        parameters_to_prune, pruning_method=prune.L1Unstructured, amount=amount
-    )  # Prune the model
-
+            parameters_to_prune.append((module, 'weight'))
+    prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=amount)
 
 def weight_sharing(model):
     shared_weights = {}
+    private_weights = {}
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-            if module.weight.shape in shared_weights:
-                module.weight = shared_weights[module.weight.shape]
+            weight_shape = module.weight.shape
+            if weight_shape in shared_weights:
+                shared_weights[weight_shape].append(module.weight)
             else:
-                shared_weights[module.weight.shape] = module.weight
-    return model
-
+                shared_weights[weight_shape] = [module.weight]
+            private_weights[name] = module.weight
+    return shared_weights, private_weights
 
 def width_scaling(model, factor):
     for name, module in model.named_modules():
@@ -43,7 +39,6 @@ def width_scaling(model, factor):
             out_channels = int(module.out_channels * factor)
             module.out_channels = out_channels
     return model
-
 
 def depth_scaling(model, factor):
     new_layers = []
@@ -56,66 +51,53 @@ def depth_scaling(model, factor):
     model.features = nn.Sequential(*new_layers)
     return model
 
-
 def main():
-    # Define fixed parameter values
-    default_learning_rate = 0.01  # Set a relatively large initial learning rate
-    pruning_amounts = [0.1, 0.3, 0.5, 0.7]
-    width_scaling_factors = [0.5, 0.75, 1.0]
-    depth_scaling_factors = [0.5, 0.75, 1.0]
+    # Define parameter ranges with more values to generate more model variants
+    learning_rate = 0.01  # Default learning rate
+    pruning_amounts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    width_scaling_factors = [0.5, 1.0]
+    depth_scaling_factors = [0.5, 1.0]
 
     # Choose the dataset and model
     dataset = 'cifar10'  # Change this to 'gtsrb' as needed
-    model_type = 'ResNet34'  # Change this to the desired model type
+    model_type = 'ResNet18'  # Change this to the desired model type
 
-
-    if dataset == "cifar10":
+    if dataset == 'cifar10':
         train_loader, test_loader = get_cifar10_loaders()
-    elif dataset == "gtsrb":
+    elif dataset == 'gtsrb':
         train_loader, test_loader = get_gtsrb_loaders()
     else:
         raise ValueError("Invalid dataset")
 
-    results_path = "model_variants_results.csv"
+    results_path = 'model_variants_results.csv'
     if not os.path.exists(results_path):
-        df = pd.DataFrame(
-            columns=[
-                "learning_rate",
-                "pruning_amount",
-                "width_scaling_factor",
-                "depth_scaling_factor",
-                "accuracy",
-                "training_time",
-                "test_time",
-                "epoch",
-            ]
-        )
+        df = pd.DataFrame(columns=["learning_rate", "pruning_amount", "width_scaling_factor", 
+                                   "depth_scaling_factor", "accuracy", "training_time", "test_time", "epoch"])
         df.to_csv(results_path, index=False)
 
-    # Iterate over combinations of parameters
+    # Iterate over combinations of parameters to generate 100 variants
     param_combinations = list(itertools.product(pruning_amounts, width_scaling_factors, depth_scaling_factors))
+    param_combinations = param_combinations[:100]  # Limit to 100 combinations
 
     for pruning_amount, width_scaling_factor, depth_scaling_factor in param_combinations:
 
         # Initialize model
-        if model_type == "AlexNet":
+        if model_type == 'AlexNet':
             model = AlexNet(num_classes=10)
-        elif model_type == "ResNet18":
+        elif model_type == 'ResNet18':
             model = get_resnet18(num_classes=10)
-        elif model_type == "ResNet34":
+        elif model_type == 'ResNet34':
             model = get_resnet34(num_classes=10)
-        elif model_type == "VGG11":
+        elif model_type == 'VGG11':
             model = get_vgg11(num_classes=10)
-        elif model_type == "VGG13":
+        elif model_type == 'VGG13':
             model = get_vgg13(num_classes=10)
-        elif model_type == "VGG16":
+        elif model_type == 'VGG16':
             model = get_vgg16(num_classes=10)
-        elif model_type == "VGG19":
+        elif model_type == 'VGG19':
             model = get_vgg19(num_classes=10)
-        elif model_type == "TinyYOLO":
-            model = TinyYOLO(
-                num_classes=20
-            )  # Adjust the number of classes for TinyYOLO
+        elif model_type == 'TinyYOLO':
+            model = TinyYOLO(num_classes=20)  # Adjust the number of classes for TinyYOLO
         else:
             raise ValueError("Invalid model type")
 
@@ -124,14 +106,14 @@ def main():
         model.device = device
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=default_learning_rate)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
         # Apply pruning
         prune_model(model, pruning_amount)
 
         # Apply weight sharing
-        model = weight_sharing(model)
+        shared_weights, private_weights = weight_sharing(model)
 
         # Apply width scaling
         model = width_scaling(model, width_scaling_factor)
@@ -148,20 +130,21 @@ def main():
             test_start_time = time.time()
             test_loss, accuracy = test(model, test_loader, criterion, device)
             test_time = time.time() - test_start_time
-
             print(f"Epoch {epoch + 1}: Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%, Test Time: {test_time:.2f} seconds")
-            
-            # Step the scheduler
-            scheduler.step(test_loss)
-
 
             # Capture time after testing
             current_time = time.time() - start_time
 
-            # Append current results to CSV
+            # Adjust learning rate
+            scheduler.step(test_loss)
 
+            # Print current learning rate
+            current_lr = scheduler.get_last_lr()[0]
+            print(f"Current Learning Rate: {current_lr}")
+
+            # Append current results to CSV
             df = pd.DataFrame([{
-                "learning_rate": optimizer.param_groups[0]['lr'],  # Record the current learning rate
+                "learning_rate": current_lr,
                 "pruning_amount": pruning_amount,
                 "width_scaling_factor": width_scaling_factor,
                 "depth_scaling_factor": depth_scaling_factor,
@@ -172,9 +155,16 @@ def main():
             }])
             df.to_csv(results_path, mode='a', header=False, index=False)
 
-
             print(f"Epoch {epoch + 1} results saved.")
 
+        # Save the model
+        model_dir = f"trained_models/{model_type}/"
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
+        model_path = os.path.join(model_dir, f"{model_type}_lr{learning_rate}_pa{pruning_amount}_wsf{width_scaling_factor}_dsf{depth_scaling_factor}.pth")
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved to {model_path}")
 
 if __name__ == "__main__":
     main()
