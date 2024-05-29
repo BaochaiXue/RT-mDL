@@ -163,7 +163,7 @@ def main():
             scheduler.step(test_loss)
 
             # Print current learning rate
-            current_lr = scheduler.get_last_lr()[0]
+            current_lr = scheduler._last_lr[0]
             print(f"Current Learning Rate: {current_lr}")
 
             # Append current results to CSV
