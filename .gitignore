@@ -1,4 +1,5 @@
 data/*
+__pycache__/*
 models/AlexNet/__pycache__/model_alexnet.cpython-311.pyc
 models/ResNet/__pycache__/model_resnet.cpython-311.pyc
 models/VGG/__pycache__/model_vgg.cpython-311.pyc

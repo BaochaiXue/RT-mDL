@@ -66,7 +66,7 @@ def main():
 
     # Choose the dataset and model
     dataset = 'cifar10'  # Change this to 'gtsrb' as needed
-    model_type = 'VGG11'  # Change this to the desired model type
+    model_type = 'ResNet34'  # Change this to the desired model type
 
 
     if dataset == "cifar10":
