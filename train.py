@@ -51,12 +51,36 @@ def depth_scaling(model, factor):
     model.features = nn.Sequential(*new_layers)
     return model
 
+def save_model(model, model_type, learning_rate, pruning_amount, width_scaling_factor, depth_scaling_factor, shared_weights):
+    # Create model directory if it doesn't exist
+    model_dir = f"trained_models/{model_type}/"
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    # Generate weight sharing information string
+    #weight_sharing_info = "_".join([f"{k}_{len(v)}" for k, v in shared_weights.items()])
+
+    # Construct the model path with weight sharing information
+    model_path = os.path.join(
+        model_dir,
+        f"{model_type}_lr{learning_rate}_pa{pruning_amount}_wsf{width_scaling_factor}_dsf{depth_scaling_factor}.pth"
+    )
+
+    # Save the model state dictionary
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+
+    # Save shared weights information
+    shared_weights_path = os.path.join(model_dir, f"{model_type}_shared_weights.pth")
+    torch.save(shared_weights, shared_weights_path)
+    print(f"Shared weights saved to {shared_weights_path}")
+
 def main():
     # Define parameter ranges with more values to generate more model variants
     learning_rate = 0.01  # Default learning rate
-    pruning_amounts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    width_scaling_factors = [0.5, 1.0]
-    depth_scaling_factors = [0.5, 1.0]
+    pruning_amounts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    width_scaling_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    depth_scaling_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     # Choose the dataset and model
     dataset = 'cifar10'  # Change this to 'gtsrb' as needed
@@ -158,13 +182,7 @@ def main():
             print(f"Epoch {epoch + 1} results saved.")
 
         # Save the model
-        model_dir = f"trained_models/{model_type}/"
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
-
-        model_path = os.path.join(model_dir, f"{model_type}_lr{learning_rate}_pa{pruning_amount}_wsf{width_scaling_factor}_dsf{depth_scaling_factor}.pth")
-        torch.save(model.state_dict(), model_path)
-        print(f"Model saved to {model_path}")
+        save_model(model, model_type, learning_rate, pruning_amount, width_scaling_factor, depth_scaling_factor, shared_weights)
 
 if __name__ == "__main__":
     main()

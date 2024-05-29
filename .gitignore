@@ -7,3 +7,4 @@ models/TinyYOLO/__pycache__/model_tiny_yolo.cpython-311.pyc
 __pycache__/data_preparation.cpython-311.pyc
 __pycache__/training_evaluation.cpython-311.pyc
 model_variants_results.csv
+trained_models/*
