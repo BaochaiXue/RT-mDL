@@ -49,15 +49,15 @@ def depth_scaling(model, factor):
     return model
 
 def main():
-    # Define parameter ranges with more values to generate more model variants
-    learning_rates = [0.001, 0.003, 0.005, 0.007, 0.009, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1]
-    pruning_amounts = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    width_scaling_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    depth_scaling_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    # Define fixed parameter values
+    default_learning_rate = 0.01  # Set a relatively large initial learning rate
+    pruning_amounts = [0.1, 0.3, 0.5, 0.7]
+    width_scaling_factors = [0.5, 0.75, 1.0]
+    depth_scaling_factors = [0.5, 0.75, 1.0]
 
     # Choose the dataset and model
     dataset = 'cifar10'  # Change this to 'gtsrb' as needed
-    model_type = 'AlexNet'  # Change this to the desired model type
+    model_type = 'VGG11'  # Change this to the desired model type
 
     if dataset == 'cifar10':
         train_loader, test_loader = get_cifar10_loaders()
@@ -72,11 +72,10 @@ def main():
                                    "depth_scaling_factor", "accuracy", "training_time", "test_time", "epoch"])
         df.to_csv(results_path, index=False)
 
-    # Iterate over combinations of parameters to generate 100 variants
-    param_combinations = list(itertools.product(learning_rates, pruning_amounts, width_scaling_factors, depth_scaling_factors))
-    param_combinations = param_combinations[:100]  # Limit to 100 combinations
+    # Iterate over combinations of parameters
+    param_combinations = list(itertools.product(pruning_amounts, width_scaling_factors, depth_scaling_factors))
 
-    for learning_rate, pruning_amount, width_scaling_factor, depth_scaling_factor in param_combinations:
+    for pruning_amount, width_scaling_factor, depth_scaling_factor in param_combinations:
 
         # Initialize model
         if model_type == 'AlexNet':
@@ -103,7 +102,8 @@ def main():
         model.device = device
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+        optimizer = optim.Adam(model.parameters(), lr=default_learning_rate)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2)
 
         # Apply pruning
         prune_model(model, pruning_amount)
@@ -127,13 +127,16 @@ def main():
             test_loss, accuracy = test(model, test_loader, criterion, device)
             test_time = time.time() - test_start_time
             print(f"Epoch {epoch + 1}: Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%, Test Time: {test_time:.2f} seconds")
+            
+            # Step the scheduler
+            scheduler.step(test_loss)
 
             # Capture time after testing
             current_time = time.time() - start_time
 
             # Append current results to CSV
             df = pd.DataFrame([{
-                "learning_rate": learning_rate,
+                "learning_rate": optimizer.param_groups[0]['lr'],  # Record the current learning rate
                 "pruning_amount": pruning_amount,
                 "width_scaling_factor": width_scaling_factor,
                 "depth_scaling_factor": depth_scaling_factor,
