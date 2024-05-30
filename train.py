@@ -171,7 +171,7 @@ def main():
             scheduler.step(test_loss)
 
             # Print current learning rate
-            current_lr = scheduler.get_last_lr()[0]
+            current_lr = scheduler._last_lr[0]
             print(f"Current Learning Rate: {current_lr}")
 
             # Update best accuracy if the current accuracy is higher than the best found so far
