@@ -1,0 +1,2 @@
+learning_rate,pruning_amount,width_scaling_factor,depth_scaling_factor,accuracy,training_time,test_time,epoch
+1.0000000000000004e-08,0,0.5,0.5,77.69,1217.2234647274017,2.443403959274292,51

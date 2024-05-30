@@ -148,41 +148,68 @@ def main():
         # Track time
         start_time = time.time()
 
-        # Train and test the model
-        for epoch in range(10):
-            train(model, train_loader, criterion, optimizer, epoch, device)
-            test_start_time = time.time()
-            test_loss, accuracy = test(model, test_loader, criterion, device)
-            test_time = time.time() - test_start_time
-            print(f"Epoch {epoch + 1}: Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%, Test Time: {test_time:.2f} seconds")
 
-            # Capture time after testing
-            current_time = time.time() - start_time
+
+        # Initialize the best accuracy and best epoch tracking
+        best_accuracy = 0.0
+        best_epoch_data = None  # To store the data of the best accuracy epoch
+        loss_threshold = 1e-7  # Define a threshold for loss to decide when to stop training
+
+        # Train and test the model
+        for epoch in range(100):
+            train(model, train_loader, criterion, optimizer, epoch, device)
+            
+            test_loss, accuracy = test(model, test_loader, criterion, device)
+            print(f"Epoch {epoch + 1}: Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%")
+
+            # Stop training if loss is below the threshold
+            if test_loss <= loss_threshold:
+                print(f"Stopping training early as loss {test_loss:.4f} is below the threshold {loss_threshold}.")
+                break
 
             # Adjust learning rate
             scheduler.step(test_loss)
 
             # Print current learning rate
-            current_lr = scheduler._last_lr[0]
+            current_lr = scheduler.get_last_lr()[0]
             print(f"Current Learning Rate: {current_lr}")
 
-            # Append current results to CSV
-            df = pd.DataFrame([{
-                "learning_rate": current_lr,
-                "pruning_amount": pruning_amount,
-                "width_scaling_factor": width_scaling_factor,
-                "depth_scaling_factor": depth_scaling_factor,
-                "accuracy": accuracy,
-                "training_time": current_time,
-                "test_time": test_time,
-                "epoch": epoch + 1
-            }])
-            df.to_csv(results_path, mode='a', header=False, index=False)
+            # Update best accuracy if the current accuracy is higher than the best found so far
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_epoch_data = {
+                    "learning_rate": current_lr,
+                    "pruning_amount": pruning_amount,
+                    "width_scaling_factor": width_scaling_factor,
+                    "depth_scaling_factor": depth_scaling_factor,
+                    "accuracy": best_accuracy,
+                    "training_time": time.time() - start_time,
+                    "epoch": epoch + 1
+                }
 
-            print(f"Epoch {epoch + 1} results saved.")
+        # After training, calculate average test time
+        if best_epoch_data:
+            total_test_time = 0
+            num_tests = 10
+            for _ in range(num_tests):
+                start_test_time = time.time()
+                test(model, test_loader, criterion, device)
+                total_test_time += time.time() - start_test_time
+            average_test_time = total_test_time / num_tests
 
-        # Save the model
-        save_model(model, model_type, learning_rate, pruning_amount, width_scaling_factor, depth_scaling_factor, shared_weights)
+            # Append the average test time to the best epoch data
+            best_epoch_data["average_test_time"] = average_test_time
+
+            # Save best accuracy epoch data to CSV
+            df = pd.DataFrame([best_epoch_data])
+            results_path = 'best_accuracy_epoch_results.csv'  # Specify the correct path
+            df.to_csv(results_path, mode='w', header=True, index=False)
+            print(f"Best accuracy epoch results saved: Epoch {best_epoch_data['epoch']} with Accuracy: {best_accuracy:.2f}% and Average Test Time: {average_test_time:.2f} seconds")
+
+            # Save the model with the best accuracy information and average test time
+            save_model(model, model_type, best_epoch_data['learning_rate'], best_epoch_data['pruning_amount'],
+                    best_epoch_data['width_scaling_factor'], best_epoch_data['depth_scaling_factor'],
+                    shared_weights, average_test_time)
 
 if __name__ == "__main__":
     main()
